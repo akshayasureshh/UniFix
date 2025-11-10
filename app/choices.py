@@ -10,6 +10,7 @@ class RoleChoices(models.TextChoices):
 
 
 class LocationTypeChoices(models.TextChoices):
+    CLASSROOM = 'classroom', 'Classroom'
     BUILDING = 'building', 'Building'
     ROOM = 'room', 'Room'
     OUTDOOR = 'outdoor', 'Outdoor Area'

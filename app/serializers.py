@@ -2,29 +2,10 @@ from rest_framework import serializers
 from .models import *
 
 
-# class UserRegistrationSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(write_only=True)
-#     password_confirm = serializers.CharField(write_only=True)
-    
-    
-#     def validate(self, attrs):
-#         validated_date = super().validate(attrs)
-        
-
-
-class UserSerializer(serializers.ModelSerializer):
-    
-    def create(self, validated_data):
-        return super().create(validated_data)
-    
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password_confirm = serializers.CharField(write_only=True)
-    
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'password', 'password_confirm', 
-                 'first_name', 'last_name', 'role', 'student_id', 'department']
+    device_id = serializers.UUIDField(write_only=True, required=True)
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
@@ -33,11 +14,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         validated_data.pop('password_confirm')
+        device_id = validated_data.pop('device_id')
         password = validated_data.pop('password')
-        user = User.objects.create_user(**validated_data)
-        user.set_password(password)
-        user.save()
+        user = User.objects.create_user(password=password, **validated_data)
+        AuthToken.objects.create(user=user, device_id=device_id)
         return user
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'password_confirm', 
+                    'first_name', 'last_name', 'role', 'student_id', 
+                'department', 'device_id']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,9 +31,6 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 
                  'role', 'department', 'is_verified', 'profile_picture']
         read_only_fields = ['id']
-    class Meta:
-        model = User
-        fields = '__all__'
         
         
 class CategorySerializer(serializers.ModelSerializer):
@@ -108,19 +91,24 @@ class IssueCreateSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
-    class Meta:
-        model = Issue
-        fields = ['title', 'description', 'category', 'location', 
-                 'priority', 'is_anonymous', 'images']
-    
+    def validate(self, data):
+        if 'location' not in data or data['location'] is None:
+            raise serializers.ValidationError("Location is required")
+        return data
+  
     def create(self, validated_data):
+        print("validated_date", validated_data)
         images_data = validated_data.pop('images', [])
         issue = Issue.objects.create(**validated_data)
-        
+        print(issue)
         for image_data in images_data:
             IssueImage.objects.create(issue=issue, image=image_data)
-        
         return issue
+    
+    class Meta:
+        model = Issue
+        fields = ['id', 'title', 'description', 'category', 'location', 'is_anonymous', 'images']
+
     
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -129,9 +117,9 @@ class CommentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'author', 'parent', 'created_at', 
+        fields = ['id', 'content', 'issue', 'author', 'parent', 'created_at', 
                  'updated_at', 'is_edited', 'replies']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'is_edited']
+        read_only_fields = ['id', 'author', 'created_at', 'updated_at', 'is_edited']
     
     def get_replies(self, obj):
         if obj.replies.exists():

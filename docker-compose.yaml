@@ -3,6 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15
+    container_name: unifix_db
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -11,9 +12,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT}:5432"
+    networks:
+      - unifix_network
 
   pgadmin:
     image: dpage/pgadmin4
+    container_name: unifix_pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
@@ -21,9 +25,14 @@ services:
       - "8080:80"
     depends_on:
       - db
+    networks:
+      - unifix_network
 
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: unifix_web
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
@@ -33,6 +42,14 @@ services:
       - db
     environment:
       - DATABASE_URL=${DATABASE_URL}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DEBUG=${DEBUG}
+    networks:
+      - unifix_network
 
 volumes:
   postgres_data:
+
+networks:
+  unifix_network:
+    driver: bridge
