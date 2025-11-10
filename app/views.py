@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from rest_framework import filters
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-from .serializers import UserRegistrationSerializer ,UserSerializer, IssueCreateSerializer, IssueDetailSerializer, IssueListSerializer, CategorySerializer, LocationSerializer, CommentSerializer
+from .serializers import UserRegistrationSerializer ,UserSerializer, IssueCreateSerializer, IssueDetailSerializer, IssueListSerializer, CategorySerializer, LocationSerializer, CommentSerializer, IssueUpdateSerializer
 from app.models import Issue, Comment, Location, Category
 from django.contrib.auth import authenticate
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -16,7 +16,6 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import AuthToken, Upvote, IssueStatusHistory
-from .serializers import UserRegistrationSerializer, UserSerializer
 from rest_framework_simplejwt.views import TokenRefreshView
 from .choices import StatusChoices
 
@@ -133,6 +132,8 @@ class IssueViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return IssueCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return IssueUpdateSerializer
         elif self.action == 'list':
             return IssueListSerializer
         return IssueDetailSerializer

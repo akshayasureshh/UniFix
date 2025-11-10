@@ -97,10 +97,8 @@ class IssueCreateSerializer(serializers.ModelSerializer):
         return data
   
     def create(self, validated_data):
-        print("validated_date", validated_data)
         images_data = validated_data.pop('images', [])
         issue = Issue.objects.create(**validated_data)
-        print(issue)
         for image_data in images_data:
             IssueImage.objects.create(issue=issue, image=image_data)
         return issue
@@ -108,6 +106,26 @@ class IssueCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Issue
         fields = ['id', 'title', 'description', 'category', 'location', 'is_anonymous', 'images']
+        
+    
+class IssueUpdateSerializer(serializers.ModelSerializer):
+        images = serializers.ListField(
+            child=serializers.ImageField(), 
+            required=False, 
+            write_only=True
+        )
+        def update(self, instance, validated_data):
+            images_data = validated_data.pop('images', [])
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+            for image_data in images_data:
+                IssueImage.objects.create(issue=instance, image=image_data)
+            return instance
+        class Meta:
+            model = Issue
+            fields = ['title', 'description', 'category', 'location', 'priority', 'status', 'is_anonymous', 'images']
+
 
     
 
